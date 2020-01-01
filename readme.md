@@ -4,7 +4,7 @@ This is a collection of multiple solutions to leetcode problems in go with compl
 ## Setup
 1. Download go
 2. `go get github.com/stretchr/testify/assert`
-3. `go get github.com/PuerkitoBio/goquery `
+3. `go get text/template`
 4. `go get github.com/chromedp/chromedp`
 
 ## Testing
