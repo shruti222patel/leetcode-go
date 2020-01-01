@@ -2,9 +2,7 @@ package main
 
 import (
 	"fmt"
-	"os"
 	"strings"
-	"text/template"
 
 	"./scrapper"
 )
@@ -22,20 +20,6 @@ func main() {
 	}
 
 	fmt.Printf("%+v", lcp)
-}
-
-func generateTemplates() {
-	lc := getLeetCodeProblem("dummy url")
-
-	t := template.Must(template.ParseGlob("*.tmpl"))
-
-	err := t.ExecuteTemplate(os.Stdout, "main.tmpl", lc)
-	if err != nil {
-		panic(err)
-	}
-
-	err = t.ExecuteTemplate(os.Stdout, "readme.tmpl", lc)
-	err = t.ExecuteTemplate(os.Stdout, "main_test.tmpl", lc)
 }
 
 func getLeetCodeProblem(url string) *scrapper.LeetCodeProblem {
