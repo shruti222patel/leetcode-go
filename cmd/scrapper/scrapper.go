@@ -17,14 +17,17 @@ type LeetCodeScrapper struct {
 	Debug bool
 }
 
-func NewLeetCodeScrapper(url string) *LeetCodeScrapper {
+func NewLeetCodeScrapper(url string, debug bool) *LeetCodeScrapper {
 	lcs := LeetCodeScrapper{
-		URL: url,
+		URL:   url,
+		Debug: debug,
 	}
 
 	return &lcs
 }
 
+// ScapeData scrapes relevant data off of leetcode
+// To update xpaths, open chrome inspector, select element, copy `full xpath`
 func (lcs *LeetCodeScrapper) ScrapeData() (*LeetCodeProblem, error) {
 	lcp := LeetCodeProblem{}
 
@@ -45,6 +48,12 @@ func (lcs *LeetCodeScrapper) ScrapeData() (*LeetCodeProblem, error) {
 	ctx, cancelCtx := chromedp.NewContext(allocCtx, chromedp.WithLogf(log.Printf))
 	defer cancelCtx()
 
+	// // Add timeout
+	// if !lcs.Debug {
+	// 	ctx, cancel := context.WithTimeout(ctx, 20*time.Second)
+	// 	defer cancel()
+	// }
+
 	lcs.ctx = ctx
 
 	if err := chromedp.Run(ctx,
@@ -62,20 +71,25 @@ func (lcs *LeetCodeScrapper) ScrapeData() (*LeetCodeProblem, error) {
 	}
 	lcp.Number = lcs.cleanScrapedString(nameNodes[0].Dump("", "", false))
 	lcp.Name = lcs.cleanScrapedString(nameNodes[2].Dump("", "", false))
+	fmt.Println("Finished scrapping Name & Number")
 
 	// Find description
-	descNodes, _ := lcs.getNode("/html/body/div[1]/div/div[2]/div/div/div[1]/div/div[1]/div[1]/div/div[2]/div/div[2]/div/p/text()")
+	descNodes, _ := lcs.getNode("/html/body/div[1]/div/div[2]/div/div/div[1]/div/div[1]/div[1]/div/div[2]/div/div[2]/div/p//text()")
 	if err != nil {
 		return nil, fmt.Errorf("Couldn't find descp node")
 	}
 	lcp.Description = lcs.cleanScrapedString(lcs.concatNodeStr(descNodes))
+	fmt.Println("Finished scrapping Description")
 
 	// Find explaination
-	exampleNodes, err := lcs.getNode("/html/body/div[1]/div/div[2]/div/div/div[1]/div/div[1]/div[1]/div/div[2]/div/div[2]/div/pre/text()")
+	exampleNodes, err := lcs.getNode("/html/body/div[1]/div/div[2]/div/div/div[1]/div/div[1]/div[1]/div/div[2]/div/div[2]/div/div")
+	///html/body/div[1]/div/div[2]/div/div/div[1]/div/div[1]/div[1]/div/div[2]/div/div[2]/div/div//text()
 	if err != nil {
 		return nil, fmt.Errorf("Couldn't find example node")
 	}
-	lcp.Example = lcs.cleanScrapedString(exampleNodes[0].Dump("", "", false))
+	fmt.Println("Scrapped exampleNodes; starting cleaning")
+	lcp.Example = lcs.cleanScrapedString(lcs.concatNodeStr(exampleNodes))
+	fmt.Println("Finished scrapping Examples")
 
 	// Find related topics
 	relatedTopicsNodes, err := lcs.getNode("/html/body/div[1]/div/div[2]/div/div/div[1]/div/div[1]/div[1]/div/div[2]/div/div[6]/div[2]/a/span/text()")
@@ -83,6 +97,7 @@ func (lcs *LeetCodeScrapper) ScrapeData() (*LeetCodeProblem, error) {
 		return nil, fmt.Errorf("Couldn't find example node")
 	}
 	lcp.RelatedTopics = lcs.cleanScrapedString(lcs.concatNodeStr(relatedTopicsNodes))
+	fmt.Println("Finished scrapping Related Topics")
 
 	// Find difficulty
 	difficultyNodes, err := lcs.getNode("/html/body/div[1]/div/div[2]/div/div/div[1]/div/div[1]/div[1]/div/div[2]/div/div[1]/div[2]/div/text()")
@@ -90,6 +105,7 @@ func (lcs *LeetCodeScrapper) ScrapeData() (*LeetCodeProblem, error) {
 		return nil, fmt.Errorf("Couldn't find related topics node")
 	}
 	lcp.Difficulty = lcs.cleanScrapedString(difficultyNodes[0].Dump("", "", false))
+	fmt.Println("Finished scrapping Difficulty")
 
 	// Find related problems
 	relatedProblemsNodes, err := lcs.getNode("/html/body/div[1]/div/div[2]/div/div/div[1]/div/div[1]/div[1]/div/div[2]/div/div[7]/div[2]/div/a/text()")
@@ -97,17 +113,20 @@ func (lcs *LeetCodeScrapper) ScrapeData() (*LeetCodeProblem, error) {
 		return nil, fmt.Errorf("Couldn't find related problems node")
 	}
 	lcp.RelatedProblems = lcs.cleanScrapedString(lcs.concatNodeStr(relatedProblemsNodes))
+	fmt.Println("Finished scrapping Related Topics")
 
-	fmt.Println("Finished printing nodes")
+	fmt.Println("Finished scrapping nodes")
 
 	return &lcp, nil
 }
 
 func (lcs *LeetCodeScrapper) getNode(fullXPath string) ([]*cdp.Node, error) {
 	var node []*cdp.Node
+	fmt.Println("Getting node..")
 	err := chromedp.Run(lcs.ctx,
 		chromedp.Nodes(fullXPath, &node),
 	)
+	fmt.Println("Got node..")
 	return node, err
 }
 
@@ -115,11 +134,12 @@ func (lcs *LeetCodeScrapper) concatNodeStr(nodes []*cdp.Node) string {
 	str := ""
 	for _, n := range nodes {
 		str += n.Dump(" ", "", false)
+		fmt.Println(str)
 	}
 	return str
 }
 
 func (lcs *LeetCodeScrapper) cleanScrapedString(str string) string {
 	cleanedStr := strings.ReplaceAll(str, "#text ", "")
-	return strings.ReplaceAll(cleanedStr, `"`, "")
+	return strings.TrimSpace(strings.ReplaceAll(cleanedStr, `"`, ""))
 }
