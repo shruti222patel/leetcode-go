@@ -74,11 +74,14 @@ func (lcs *LeetCodeScrapper) ScrapeData() (*LeetCodeProblem, error) {
 	fmt.Println("Finished scrapping Name & Number")
 
 	// Find description
-	descNodes, _ := lcs.getNode("/html/body/div[1]/div/div[2]/div/div/div[1]/div/div[1]/div[1]/div/div[2]/div/div[2]/div/p//text()")
+	// descNodes, _ := lcs.getNode("/html/body/div[1]/div/div[2]/div/div/div[1]/div/div[1]/div[1]/div/div[2]/div/div[2]/div/p//text()")
+	descNodes, _ := lcs.getText("/html/body/div[1]/div/div[2]/div/div/div[1]/div/div[1]/div[1]/div/div[2]/div/div[2]/div/p//text()")
 	if err != nil {
 		return nil, fmt.Errorf("Couldn't find descp node")
 	}
-	lcp.Description = lcs.cleanScrapedString(lcs.concatNodeStr(descNodes))
+	// lcp.Description = lcs.cleanScrapedString(lcs.concatNodeStr(descNodes))
+	// lcp.Description = lcs.cleanScrapedString(lcs.concatNodeStr(descNodes))
+	fmt.Println(descNodes)
 	fmt.Println("Finished scrapping Description")
 
 	// Find explaination
@@ -130,6 +133,13 @@ func (lcs *LeetCodeScrapper) getNode(fullXPath string) ([]*cdp.Node, error) {
 	return node, err
 }
 
+func (lcs *LeetCodeScrapper) getText(fullXPath string) (*[]string, error) {
+	jsText := jsGetText(fullXPath)
+	var text *[]string
+	chromedp.Evaluate(jsText, &text)
+	return text, nil
+}
+
 func (lcs *LeetCodeScrapper) concatNodeStr(nodes []*cdp.Node) string {
 	str := ""
 	for _, n := range nodes {
@@ -142,4 +152,23 @@ func (lcs *LeetCodeScrapper) concatNodeStr(nodes []*cdp.Node) string {
 func (lcs *LeetCodeScrapper) cleanScrapedString(str string) string {
 	cleanedStr := strings.ReplaceAll(str, "#text ", "")
 	return strings.TrimSpace(strings.ReplaceAll(cleanedStr, `"`, ""))
+}
+
+func jsGetText(sel string) (js string) {
+	const funcJS = `function getText(sel) {
+				var text = [];
+				var elements = document.body.querySelectorAll(sel);
+
+				for(var i = 0; i < elements.length; i++) {
+					var current = elements[i];
+					if(current.children.length === 0 && current.textContent.replace(/ |\n/g,'') !== '') {
+					// Check the element has no children && that it is not empty
+						text.push(current.textContent + ',');
+					}
+				}
+				return text
+			 };`
+
+	invokeFuncJS := `var a = getText('` + sel + `'); a;`
+	return strings.Join([]string{funcJS, invokeFuncJS}, " ")
 }

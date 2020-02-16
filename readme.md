@@ -10,3 +10,7 @@ This is a collection of multiple solutions to leetcode problems in go with compl
 ## Testing
 1. `cd` into problem directory
 2. `go test`
+
+## Create Test
+1. `yo leetcode`
+2. Enter URL of leetcode prblm you want to add files for

@@ -1,7 +1,6 @@
 package templater
 
 import (
-	"bufio"
 	"fmt"
 	"os"
 	"strings"
@@ -72,20 +71,12 @@ func makeDir(prbName, prbNumber string) (string, error) {
 
 func createFile(t *template.Template, lcp *scrapper.LeetCodeProblem, directoryName, templateName string) error {
 	fileName := strings.ReplaceAll(templateName, ".tmpl", "")
-	w, err := getWriter("../pkg/" + directoryName + "/" + fileName)
+	filePath := "../pkg/" + directoryName + "/" + fileName
+	f, err := os.Create(filePath)
 	if err != nil {
 		return err
 	}
-	return t.ExecuteTemplate(w, templateName, lcp)
-}
-
-func getWriter(filePath string) (*bufio.Writer, error) {
-	f, err := os.Create(filePath)
-	if err != nil {
-		return nil, err
-	}
-
-	return bufio.NewWriter(f), nil
+	return t.ExecuteTemplate(f, templateName, lcp)
 }
 
 func toSlug(str string) string {
